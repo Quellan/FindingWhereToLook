@@ -44,8 +44,8 @@ there is only one path to that function. Then if we looked at all the trees, we 
 at A or at B must have this path in their ancestry. So if we were to count the number of path segments from the root to A or B (and not allowing duplicate paths from the same tree) then
 we know the function is on a path that occurs exactly as often as the number of examples we have. Recall that we had a wide variance in the kinds of trees so most paths would occur less often.
 
-Of course, in practice one bad node and only one path to it aren't very likely. But that's fine, if we have `k` paths to the bad node, then by pigeonhole one of these must occur at least `1/k`
-times. And we can see that this is true even if there's multiple nodes that mess up the state. We just have `k` be the total number of paths to any of these.
+Of course, in practice one bad node and only one path to it aren't very likely. But that's fine, if we have `k` paths to the bad node, then by pigeonhole one of these must occur in at
+least `1/k` trees. And we can see that this is true even if there's multiple nodes that mess up the state. We just have `k` be the total number of paths to any of these.
 
 This suggests a natural algorithm - count the number of paths that end up at A or B, order them by size and use that to guide your search.
 
@@ -117,7 +117,7 @@ We're going to group these by A and B and skip the depth since the example is si
 
 Because there's only 3 trees here the numbers are all small; but we can see that if we look at
 the difference in counts between the middle and right columns, there is only one that has a
-difference of two: `svb -> X`. It points directly at the culprit and saves us a bunch of time
+difference of two: `svc_b → X`. It points directly at the culprit and saves us a bunch of time
 looking at other edges.
 
 ## Some Concrete Examples
@@ -135,7 +135,7 @@ trace that showed the credentials being removed.
 
 ### Binary Push Problem
 
-This one was a little odder. I was looking at the data across several days, running the aggregation one per day. Some days everything was fine
+This one was a little odder. I was looking at the data across several days, running the aggregation once per day. Some days everything was fine
 and on others there was an asymmetry. But the path that was responsible for the asymmetry was also present on the days that were fine in the
 exact same way. And the timing didn't appear to correlate with any code changes. I remember saying to my colleague something like 'it seems like
 this function knows what day it is, and on some days knows that it should choose B'.
@@ -147,8 +147,8 @@ B to occur more frequently than it should.
 
 ## Limits
 
-This example also shows a limit of this technique. I doubt that realization would have been enough for me to figure out the cause. It was only useful combined
-with my colleague's knowledge and background. The other one is that you do need a fair number of trees to get useful data. I never had the problem of very few trees,
+The binary push example also shows a limit of this technique. I doubt that realization would have been enough for me to figure out the cause. It was only useful combined
+with my colleague's knowledge and background. The other is that you do need a fair number of trees to get useful data. I never had the problem of very few trees,
 but as we saw in the example, the difference from 1 to 2 isn't much and is much harder to find. I don't think the degenerate cases I mentioned above are a
 real limitation, it's not been my experience that they occur.
 
