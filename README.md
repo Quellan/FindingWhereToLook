@@ -73,7 +73,7 @@ In the following we have 3 trees. Every leaf ends in A or B, and we know that `X
 
 ```mermaid
 flowchart LR
-  subgraph T1["Bad tree 1"]
+  subgraph T1["Bad tree 3"]
     direction TB
     r1[root] --> a1[svc_a] --> fa1["f → A"]
     r1 ==> b1[svc_b] ==> x1[X] --> c1[svc_c] --> fb1["f → B"]
@@ -83,7 +83,7 @@ flowchart LR
     r2[root] --> c2[svc_c] --> fa2["f → A"]
     r2 ==> b2[svc_b] ==> x2[X] --> e2[svc_e] --> fb2["f → B"]
   end
-  subgraph T3["Bad tree 3"]
+  subgraph T3["Bad tree 1"]
     direction TB
     r3[root] --> b3[svc_b] --> e3[svc_e] --> fa3["f → A"]
     r3 ==> a3[svc_a] ==> x3[X] --> fb3["f → B"]
