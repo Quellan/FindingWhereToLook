@@ -31,7 +31,7 @@ The tree has several kinds of functions `f(state), g(state), h(state)`, etc. The
 state of its own which should always be the same. In the example above, the state of this `f` is the experiment arm. We want it to be all A or all B. But we have a collection
 of examples where this is not the case, and we want to figure out why.
 
-One technical point, in programming the functions are naturally mapped to either coding function or services that call each other. We want the edges of the dag to represent
+One technical point, in programming the functions are naturally mapped to either functions in a program or services that call each other. We want the edges of the tree to represent
 causality, so if we had a function `foo` call a function `bar` that would have side effects and return control to `foo`, in our trees this is represented as `foo_1 -> bar -> foo_2`.
 
 ## Finding Where to Look
@@ -45,7 +45,7 @@ at A or at B must have this path in their ancestry. So if we were to count the n
 we know the function is on a path that occurs exactly as often as the number of examples we have. Recall that we had a wide variance in the kinds of trees so most paths would occur less often.
 
 Of course, in practice one bad node and only one path to it aren't very likely. But that's fine, if we have `k` paths to the bad node, then by pigeonhole one of these must occur in at
-least `1/k` trees. And we can see that this is true even if there's multiple nodes that mess up the state. We just have `k` be the total number of paths to any of these.
+least `1/k` trees. And we can see that this is true even if there are multiple nodes that mess up the state. We just have `k` be the total number of paths to any of these.
 
 This suggests a natural algorithm - count the number of paths that end up at A or B, order them by size and use that to guide your search.
 
@@ -53,13 +53,13 @@ If we're constructing examples adversarially it's easy to find ones for which th
 always identify this path, narrowing it down to 100 functions isn't very helpful. Similarly if we have lots of problems, say `k=10` and the problem paths are distributed evenly, even
 if each path has length 3, that's possibly 30 functions; and there will be some paths that are not problematic that likely occur 10% of the time.
 
-In my experience, neither of the above happen often. Really long call chains usually suggest some kind of degenerate loop, and even if there are a lot of errors, call paths aren't really
+In my experience, neither of the above happens often. Really long call chains usually suggest some kind of degenerate loop, and even if there are a lot of errors, call paths aren't really
 distributed uniformly. If we do the rule of thumb power law distribution, we should expect one of the bad paths to occur much more often than the rest.
 
 ## Practical modifications
 
-These are some changes that helped using the technique in practice. First rather than aggregating by path, it was better to aggregate by edge, with a depth marker. This is because the paths could sometimes
-get long and it was hard to read. This way each output was quickly scannable. The other, probably more important change, was to group the paths by the value of the leaf node. So each edge would have the function name,
+These are some changes that helped when using the technique in practice. First rather than aggregating by path, it was better to aggregate by edge, with a depth marker. This is because the paths could sometimes
+get long and they were hard to read. This way each output was quickly scannable. The other, probably more important change, was to group the paths by the value of the leaf node. So each edge would have the function name,
 the name of the function that called it, the depth, and the value at the leaf (either A or B). This ended up making it much easier to find suspicious paths, because in practice the 'bad' functions usually
 point to either A or B. So the paths to both leaves are shared, except for the one path that always chooses B (for example). This ends up being a clearer signal most of the time, even if there isn't a cute
 pigeonhole principle argument backing it up.
@@ -69,7 +69,7 @@ stood out.
 
 ## A Simple Example
 
-In the following we have 3 trees. Every leaf ends in A or B, and we know that `X` is the bad node; but there's nothing in the metadata on the paths to X or past it that suggest that.
+In the following we have 3 trees. Every leaf ends in A or B, and we know that `X` is the bad node; but there's nothing in the metadata on the paths to X or past it that suggests it.
 
 ```mermaid
 flowchart LR
@@ -115,7 +115,7 @@ We're going to group these by A and B and skip the depth since the example is si
 | `svc_e → f` | 1 | 1 |
 
 
-Because there's only 3 trees here the numbers are all small; but we can see that if we look at
+Because there are only 3 trees here the numbers are all small; but we can see that if we look at
 the difference in counts between the middle and right columns, there is only one that has a
 difference of two: `svc_b → X`. It points directly at the culprit and saves us a bunch of time
 looking at other edges.
@@ -130,7 +130,7 @@ privilege to work with the best debugger I've ever worked with, referred to as a
 
 In this case the problem ended up being that one of the interior nodes cleared the user credentials resetting the state.
 Because this is a global operation it affected a lot of different experiments and we saw the node at the tail end of the most
-common paths. I handed this information to my colleague and he was able to find the code that caused this and generate a detailed
+common paths. I handed this information to my colleague and they were able to find the code that caused this and generate a detailed
 trace that showed the credentials being removed.
 
 ### Binary Push Problem
@@ -140,24 +140,24 @@ and on others there was an asymmetry. But the path that was responsible for the 
 exact same way. And the timing didn't appear to correlate with any code changes. I remember saying to my colleague something like 'it seems like
 this function knows what day it is, and on some days knows that it should choose B'.
 
-This framing is what gave them the clue to realising the source of a problem. There was a binary rollout that had messed up. It was meant to
+This framing is what gave them the clue to realising the source of the problem. There was a binary rollout that had messed up. It was meant to
 be done quickly but somehow got stuck and there were a few days when two versions of the same binary were running. For technical reasons that are beyond
-the scope of this post; neither were wrong - both would have been fine if they were the only one running but the combination led to a behaviour that caused
+the scope of this post, neither were wrong - both would have been fine if they were the only one running but the combination led to a behaviour that caused
 B to occur more frequently than it should.
 
 ## Limits
 
-The binary push example also shows a limit of this technique. I doubt that realization would have been enough for me to figure out the cause. It was only useful combined
+The binary push example also shows a limit of this technique. I doubt that realisation would have been enough for me to figure out the cause. It was only useful combined
 with my colleague's knowledge and background. The other is that you do need a fair number of trees to get useful data. I never had the problem of very few trees,
 but as we saw in the example, the difference from 1 to 2 isn't much and is much harder to find. I don't think the degenerate cases I mentioned above are a
-real limitation, it's not been my experience that they occur.
+real limitation; it's not been my experience that they occur.
 
 ## Conclusions
 
-In cases when you have a lot of errors spread over a large, unfamiliar code base; rather than looking at individual examples sometimes we can look at the aggregate
-structure of the tree and they'll point us to where we need to look. This can be much better, because specifically the code base is unfamiliar and we don't have
+In cases when you have a lot of errors spread over a large, unfamiliar codebase; rather than looking at individual examples sometimes we can look at the aggregate
+structure of the tree and it'll point us to where we need to look. This can be much better, because specifically the code base is unfamiliar and we don't have
 good intuitions about where to look. And as we saw above, this was useful even in cases where there's nothing we could have gleaned from looking at the individual
-metadata beside the fact that the tree was bad. No field in any of the metadata was incorrect, and it didn't contain anything that pointed to the cause.
+metadata besides the fact that the tree was bad. No field in any of the metadata was incorrect, and it didn't contain anything that pointed to the cause.
 
 ## Appendix: Possibly related work
 
